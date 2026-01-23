@@ -4,7 +4,6 @@ https://www.curseforge.com/wow/addons/bis-tooltip
 This update focuses on **full compatibility with WoW 3.3.5a**, stability, and performance.
 
 
-<img width="380" height="420" alt="image" src="https://github.com/user-attachments/assets/4a988995-0e8f-4759-b4bb-42854e2b0eea" /><img width="380" height="420" alt="image" src="https://github.com/user-attachments/assets/11b06aac-1b81-4d40-914b-cfe44a69c6ce" /><img width="380" height="420" alt="image" src="https://github.com/user-attachments/assets/6fe9dd14-d8d6-4303-8c28-aebca8a2bf88" /><img width="220" height="400" alt="image" src="https://github.com/user-attachments/assets/3acf9ca7-7564-4c46-b493-6faa49a916e4" />
 
 
 ### Core & Initialization
