@@ -2,7 +2,8 @@
 https://www.curseforge.com/wow/addons/bis-tooltip
 
 This update focuses on **full compatibility with WoW 3.3.5a**, stability, and performance.
-<img width="453" height="509" alt="image" src="https://github.com/user-attachments/assets/4a988995-0e8f-4759-b4bb-42854e2b0eea" /><img width="467" height="522" alt="image" src="https://github.com/user-attachments/assets/11b06aac-1b81-4d40-914b-cfe44a69c6ce" /><img width="463" height="507" alt="image" src="https://github.com/user-attachments/assets/6fe9dd14-d8d6-4303-8c28-aebca8a2bf88" />
+<img width="453" height="509" alt="image" src="https://github.com/user-attachments/assets/4a988995-0e8f-4759-b4bb-42854e2b0eea" /><img width="467" height="522" alt="image" src="https://github.com/user-attachments/assets/11b06aac-1b81-4d40-914b-cfe44a69c6ce" /><img width="463" height="507" alt="image" src="https://github.com/user-attachments/assets/6fe9dd14-d8d6-4303-8c28-aebca8a2bf88" />![Uploading image.png…]()
+
 ### Core & Initialization
 - Fixed broken addon initialization caused by missing global object (`BistooltipAddon`).
 - Ensured `BistooltipAddon` is safely created in all core files, removing dependency on file load order.
