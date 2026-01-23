@@ -4,7 +4,7 @@ https://www.curseforge.com/wow/addons/bis-tooltip
 This update focuses on **full compatibility with WoW 3.3.5a**, stability, and performance.
 
 
-<img width="453" height="509" alt="image" src="https://github.com/user-attachments/assets/4a988995-0e8f-4759-b4bb-42854e2b0eea" /><img width="467" height="522" alt="image" src="https://github.com/user-attachments/assets/11b06aac-1b81-4d40-914b-cfe44a69c6ce" /><img width="463" height="507" alt="image" src="https://github.com/user-attachments/assets/6fe9dd14-d8d6-4303-8c28-aebca8a2bf88" /><img width="322" height="632" alt="image" src="https://github.com/user-attachments/assets/3acf9ca7-7564-4c46-b493-6faa49a916e4" />
+<img width="440" height="520" alt="image" src="https://github.com/user-attachments/assets/4a988995-0e8f-4759-b4bb-42854e2b0eea" /><img width="440" height="520" alt="image" src="https://github.com/user-attachments/assets/11b06aac-1b81-4d40-914b-cfe44a69c6ce" /><img width="440" height="520" alt="image" src="https://github.com/user-attachments/assets/6fe9dd14-d8d6-4303-8c28-aebca8a2bf88" /><img width="440" height="520" alt="image" src="https://github.com/user-attachments/assets/3acf9ca7-7564-4c46-b493-6faa49a916e4" />
 
 
 ### Core & Initialization
@@ -20,7 +20,9 @@ This update focuses on **full compatibility with WoW 3.3.5a**, stability, and pe
   - `attempt to call method 'createMainFrame' (a nil value)`
   - `ipairs(nil)` crashes when BIS data was missing for class/spec/phase
 - Added full nil-guards for optional dependencies (DataStore, external tooltip hooks).
-<img width="589" height="569" alt="image" src="https://github.com/user-attachments/assets/71d424c9-8b86-4abc-aee3-fb57da294869" />
+- 
+<img width="600" height="580" alt="image" src="https://github.com/user-attachments/assets/71d424c9-8b86-4abc-aee3-fb57da294869" />
+
 ### Item & Icon Loading (3.3.5a)
 - Reworked item loading logic to handle `GetItemInfo()` returning `nil` on WoW 3.3.5a.
 - Implemented safe polling-based item icon loading (no `GET_ITEM_INFO_RECEIVED` dependency).
