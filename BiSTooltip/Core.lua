@@ -100,67 +100,112 @@ local function createEquipmentWatcher()
     local frame = CreateFrame("Frame")
     frame:Hide()
 
-    frame:SetScript("OnEvent", frame.Show)
     frame:RegisterEvent("BAG_UPDATE")
 
-    local flag = false
+    local updatePending = false
+    local delay = 0.35
+    local acc = 0
 
-    frame:SetScript("OnUpdate", function(self, elapsed)
-        self:Hide()
-        if not flag then
-            flag = true
-            local collection = {}
+    local bisItemIDs -- cached list of BiS itemIDs
+    local bisIndex = 1
+    local bisChunk = 200
+    local scanningBis = false
 
-            -- Check player's bags (inventory)
-            for bag = 0, NUM_BAG_SLOTS do
-                local numSlots = GetContainerNumSlots(bag)
-                for slot = 1, numSlots do
-                    local itemLink = GetContainerItemLink(bag, slot)
-                    if itemLink then
-                        local itemID = tonumber(string.match(itemLink, "item:(%d+):"))
-                        if itemID then
-                            collection[itemID] = 1 -- Item is in bags
-                        end
-                    end
-                end
-            end
-
-            -- Check player's bank
-            for bankBag = NUM_BAG_SLOTS + 1, NUM_BAG_SLOTS + NUM_BANKBAGSLOTS do
-                local numSlots = GetContainerNumSlots(bankBag)
-                for slot = 1, numSlots do
-                    local itemLink = GetContainerItemLink(bankBag, slot)
-                    if itemLink then
-                        local itemID = tonumber(string.match(itemLink, "item:(%d+):"))
-                        if itemID then
-                            collection[itemID] = 1 -- Item is in bank
-                        end
-                    end
-                end
-            end
-
-            -- Check worn equipment
-            for i = 1, 19 do
-                local itemID = GetInventoryItemID("player", i)
-                if itemID then
-                    collection[itemID] = 2 -- Item is equipped
-                end
-            end
-
-            -- Check items using GetItemCount
-            local itemIDs = collectItemIDs(Bistooltip_bislists)
-            for _, itemID in ipairs(itemIDs) do
-                local count = GetItemCount(itemID, true) -- true includes the bank
-                if count > 0 then
-                    collection[itemID] = 1 -- Store the item count
-                end
-            end
-
-            Bistooltip_char_equipment = collection
-            flag = false
+    local function ensureBisItemIDs()
+        if not bisItemIDs then
+            bisItemIDs = collectItemIDs(Bistooltip_bislists)
         end
+    end
+
+    local function scanBagsAndEquipped(collection)
+        for bag = 0, NUM_BAG_SLOTS do
+            local numSlots = GetContainerNumSlots(bag)
+            for slot = 1, numSlots do
+                local itemLink = GetContainerItemLink(bag, slot)
+                if itemLink then
+                    local itemID = tonumber(string.match(itemLink, "item:(%d+):"))
+                    if itemID then
+                        collection[itemID] = 1
+                    end
+                end
+            end
+        end
+
+        -- Bank bags (not main bank slots)
+        for bankBag = NUM_BAG_SLOTS + 1, NUM_BAG_SLOTS + NUM_BANKBAGSLOTS do
+            local numSlots = GetContainerNumSlots(bankBag)
+            for slot = 1, numSlots do
+                local itemLink = GetContainerItemLink(bankBag, slot)
+                if itemLink then
+                    local itemID = tonumber(string.match(itemLink, "item:(%d+):"))
+                    if itemID then
+                        collection[itemID] = 1
+                    end
+                end
+            end
+        end
+
+        for i = 1, 19 do
+            local itemID = GetInventoryItemID("player", i)
+            if itemID then
+                collection[itemID] = 2
+            end
+        end
+    end
+
+    local function beginScan()
+        local collection = {}
+        scanBagsAndEquipped(collection)
+        Bistooltip_char_equipment = collection
+
+        -- Spread the expensive BiS-wide GetItemCount checks across frames
+        ensureBisItemIDs()
+        bisIndex = 1
+        scanningBis = true
+        frame:Show()
+    end
+
+    frame:SetScript("OnEvent", function()
+        updatePending = true
+        acc = 0
+        frame:Show()
     end)
 
+    frame:SetScript("OnUpdate", function(self, elapsed)
+        if updatePending then
+            acc = acc + elapsed
+            if acc >= delay then
+                acc = 0
+                updatePending = false
+                beginScan()
+            end
+            return
+        end
+
+        if scanningBis and bisItemIDs then
+            local stop = bisIndex + bisChunk - 1
+            if stop > #bisItemIDs then stop = #bisItemIDs end
+
+            for i = bisIndex, stop do
+                local itemID = bisItemIDs[i]
+                if itemID then
+                    local count = GetItemCount(itemID, true)
+                    if count and count > 0 and not Bistooltip_char_equipment[itemID] then
+                        Bistooltip_char_equipment[itemID] = 1
+                    end
+                end
+            end
+            bisIndex = stop + 1
+
+            if bisIndex > #bisItemIDs then
+                scanningBis = false
+                self:Hide()
+            end
+            return
+        end
+
+        self:Hide()
+    end)
 end
 
 function BistooltipAddon:OnInitialize()

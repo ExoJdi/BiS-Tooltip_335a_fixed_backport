@@ -119,7 +119,7 @@ local function createSpellFrame(spell_id, size)
     -- Retrieve spell info directly using GetSpellInfo
     local name, rank, icon, castTime, minRange, maxRange = GetSpellInfo(spell_id)
     if not name or not icon then
-        spell_frame:SetImage("Interface\\Icons\\INV_Misc_QuestionMark")
+        spell_frame:SetImage("Interface\Icons\INV_Misc_QuestionMark")
         return spell_frame
     end
 
@@ -356,6 +356,38 @@ local function drawDropdowns()
         phase_index = key
         phase = Bistooltip_phases[key]
         drawSpecData()
+
+    local buttonContainer = AceGUI:Create("SimpleGroup")
+    buttonContainer:SetFullWidth(true)
+    buttonContainer:SetLayout("Flow")
+    buttonContainer:SetAutoAdjustHeight(false)
+    buttonContainer:SetHeight(32)
+    buttonContainer.content:SetPoint("CENTER")
+
+    local reloadButton = AceGUI:Create("Button")
+    reloadButton:SetText("Reload Data")
+    reloadButton:SetWidth(120)
+    reloadButton:SetHeight(24)
+    reloadButton:SetCallback("OnClick", function()
+        BistooltipAddon:reloadData()
+    end)
+
+    buttonContainer:AddChild(reloadButton)
+    main_frame:AddChild(buttonContainer)
+
+    local closeBtn
+    for _, child in ipairs({ main_frame.frame:GetChildren() }) do
+        if child:GetObjectType() == "Button" and child.GetText and child:GetText() == CLOSE then
+            closeBtn = child
+            break
+        end
+    end
+
+    if closeBtn then
+        closeBtn:SetParent(buttonContainer.frame)
+        closeBtn:ClearAllPoints()
+        closeBtn:SetPoint("LEFT", reloadButton.frame, "RIGHT", 20, 0)
+    end
     end)
 
     specDropdown:SetCallback("OnValueChanged", function(_, _, key)
@@ -484,90 +516,11 @@ function BistooltipAddon:createMainFrame()
     createSpecFrame()
     drawSpecData()
 
-    -- Footer buttons (Reload Data / Close)
-    do
-        -- Remove AceGUI status/footer strip
-        local f = main_frame and main_frame.frame
-        if f then
-            if f.statusbg then f.statusbg:Hide() end
-            if f.status then f.status:Hide() end
-            if f.statustext then f.statustext:Hide() end
-
-            -- Close on ESC (requires a valid global frame name)
-            local fname = f.GetName and f:GetName()
-            if fname and UISpecialFrames then
-                local exists = false
-                for i = 1, #UISpecialFrames do
-                    if UISpecialFrames[i] == fname then exists = true break end
-                end
-                if not exists then table.insert(UISpecialFrames, fname) end
-            end
         end
 
-        -- Reserve footer space inside AceGUI layout
-        local footer = AceGUI:Create("SimpleGroup")
-        footer:SetFullWidth(true)
-        footer:SetHeight(32)
-        footer:SetLayout("None")
-        main_frame:AddChild(footer)
-
-        local fw = footer.frame
-        if fw then
-            if fw.SetBackdrop then fw:SetBackdrop(nil) end
-        end
-
-        local btnW, btnH = 120, 24
-        local centerGap, yPad = 8, 4
-
-        local reloadButton = AceGUI:Create("Button")
-        reloadButton:SetText("Reload Data")
-        reloadButton:SetWidth(btnW)
-        reloadButton:SetHeight(btnH)
-        reloadButton:SetCallback("OnClick", function()
-            BistooltipAddon:reloadData()
-        end)
-        footer:AddChild(reloadButton)
-
-        local closeButton = AceGUI:Create("Button")
-        closeButton:SetText("Close")
-        closeButton:SetWidth(btnW)
-        closeButton:SetHeight(btnH)
-        closeButton:SetCallback("OnClick", function()
-            BistooltipAddon:closeMainFrame()
-        end)
-        footer:AddChild(closeButton)
-
-        local rf = reloadButton.frame
-        local cf = closeButton.frame
-        if fw and rf and cf then
-            rf:ClearAllPoints()
-            rf:SetPoint("BOTTOMRIGHT", fw, "BOTTOM", -centerGap, yPad)
-            cf:ClearAllPoints()
-            cf:SetPoint("BOTTOMLEFT", fw, "BOTTOM", centerGap, yPad)
-
-            local function hideExtraClose(parent)
-                if not parent or not parent.GetChildren then return end
-                for _, child in ipairs({ parent:GetChildren() }) do
-                    if child and child ~= cf and child.GetObjectType and child:GetObjectType() == "Button" then
-                        local t = child.GetText and child:GetText()
-                        if t == "Close" then
-                            child:Hide()
-                            if child.SetScript then child:SetScript("OnShow", child.Hide) end
-                            child.Show = child.Hide
-                        end
-                    end
-                end
-            end
-            hideExtraClose(main_frame.frame)
-            hideExtraClose(fw)
-        end
-    end
-
-
-end
 function BistooltipAddon:closeMainFrame()
     if main_frame then
-
+        -- Release UI children to avoid leaks (AceGUI)
         if main_frame.ReleaseChildren then
             main_frame:ReleaseChildren()
         end
