@@ -60,6 +60,9 @@ local configTable = {
             type = "toggle",
             set = function(info, val)
                 BistooltipAddon.db.char.filter_class_names = val
+                if BistooltipAddon.RefreshTooltips then
+                    BistooltipAddon:RefreshTooltips()
+                end
             end,
             get = function(info)
                 return BistooltipAddon.db.char.filter_class_names
@@ -73,6 +76,9 @@ local configTable = {
             width = "double",
             set = function(info, val)
                 BistooltipAddon.db.char.tooltip_with_ctrl = val
+                if BistooltipAddon.RefreshTooltips then
+                    BistooltipAddon:RefreshTooltips()
+                end
             end,
             get = function(info)
                 return BistooltipAddon.db.char.tooltip_with_ctrl
@@ -106,7 +112,13 @@ local configTable = {
                 si = tonumber(si)
                 local class_name = Bistooltip_classes[ci].name
                 local spec_name = Bistooltip_classes[ci].specs[si]
+                if not BistooltipAddon.db.char.filter_specs[class_name] then
+                    BistooltipAddon.db.char.filter_specs[class_name] = {}
+                end
                 BistooltipAddon.db.char.filter_specs[class_name][spec_name] = val
+                if BistooltipAddon.RefreshTooltips then
+                    BistooltipAddon:RefreshTooltips()
+                end
             end,
             get = function(info, key)
                 local ci, si = strsplit(":", key)
@@ -143,6 +155,10 @@ local configTable = {
                     }
                 else
                     BistooltipAddon.db.char.highlight_spec = {}
+                end
+
+                if BistooltipAddon.RefreshTooltips then
+                    BistooltipAddon:RefreshTooltips()
                 end
 
             end,

@@ -7,6 +7,21 @@ local function specHighlighted(class_name, spec_name)
                BistooltipAddon.db.char.highlight_spec.class_name == class_name)
 end
 
+-- Force refresh of visible item tooltips so option changes apply immediately.
+function BistooltipAddon:RefreshTooltips()
+    local tooltips = { GameTooltip, ItemRefTooltip }
+    for _, tt in ipairs(tooltips) do
+        if tt and tt.IsShown and tt:IsShown() then
+            local _, link = tt:GetItem()
+            if link then
+                -- Re-setting the hyperlink forces Blizzard tooltip to rebuild.
+                tt:SetHyperlink("|cff9d9d9d|Hitem:3299::::::::20:257::::::|h[Fractured Canine]|h|r")
+                tt:SetHyperlink(link)
+            end
+        end
+    end
+end
+
 local function specFiltered(class_name, spec_name)
     if specHighlighted(class_name, spec_name) then
         return false
@@ -14,8 +29,13 @@ local function specFiltered(class_name, spec_name)
     if IsAltKeyDown() then
         return false
     end
-    if BistooltipAddon.db.char.filter_specs[class_name] then
-        return not BistooltipAddon.db.char.filter_specs[class_name][spec_name]
+    local classFilter = BistooltipAddon.db.char.filter_specs and BistooltipAddon.db.char.filter_specs[class_name]
+    if classFilter then
+        -- Default is "show" (true). If a spec has never been touched in UI yet, it may be nil here.
+        if classFilter[spec_name] == nil then
+            classFilter[spec_name] = true
+        end
+        return not classFilter[spec_name]
     end
     return false
 end
@@ -215,24 +235,36 @@ local function OnGameTooltipSetItem(tooltip)
 
     -- tooltip:AddDoubleLine("Spec Name", "Phase", 1, 1, 1, 1, 1, 1)
 
-    -- -- Iterate through each class and specialization
+    -- Iterate through each class and specialization
     for class, specs in caseInsensitivePairs(Bistooltip_spec_icons) do
         for spec, icon in pairs(specs) do
             -- Skip the 'classIcon' entry
             if spec ~= "classIcon" then
+                -- Hide specs (unless ALT is held or it's the highlighted spec)
+                if specFiltered(class, spec) then
+                    -- filtered out
+                else
                 -- Search for the item ID in the current class and spec
                 local foundPhases = searchIDInBislistsClassSpec(Bistooltip_bislists, itemId, class, spec)
 
                 -- Only proceed if search function returns a non-nil value
                 if foundPhases then
-                    -- Create a single line with icon, class, spec, and found phases
-                    local iconString = string.format("|T%s:18|t", icon) -- 18 is the size of the icon
-                    local lineText = string.format("%s %s - %s", iconString, class, spec)
-                    -- tooltip:AddLine(lineText, 1, 1, 1)
-                    tooltip:AddDoubleLine(lineText, foundPhases, 1, 1, 0, 1, 1, 0)
+                    local isHighlight = specHighlighted(class, spec)
+                    local iconString = string.format("|T%s:18|t", icon)
 
-                    -- Add spacing between entries
-                    -- tooltip:AddLine(" ", 1, 1, 0)
+                    local lineText
+                    if classNamesFiltered() then
+                        lineText = string.format("%s %s", iconString, spec)
+                    else
+                        lineText = string.format("%s %s - %s", iconString, class, spec)
+                    end
+
+                    if isHighlight then
+                        tooltip:AddDoubleLine(lineText, foundPhases, 0, 1, 0, 0, 1, 0)
+                    else
+                        tooltip:AddDoubleLine(lineText, foundPhases, 1, 1, 0, 1, 1, 0)
+                    end
+                end
                 end
             end
         end

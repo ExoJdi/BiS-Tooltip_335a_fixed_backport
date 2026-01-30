@@ -1,7 +1,7 @@
 ## Interface: 30300
 ## Title: BiS-Tooltip-3.3.5a
 ## Author: Hellixoid, Dweem, Silver (fixed by @Jdi)
-## Version: 1.2.1
+## Version: 1.2.2
 ## Note: BiS-Tooltip - is an add-on providing in-game information about best in slot items. Backport to 3.3.5a.
 ## SavedVariables: BisTooltipDB
 ## OptionalDeps: Ace3, DataStore, DataStore_Inventory
