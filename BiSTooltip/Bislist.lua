@@ -26,6 +26,7 @@ local checkmarks = {}
 local boemarks = {}
 
 local isHorde = (UnitFactionGroup("player") == "Horde")
+local dropdownSyncInProgress = false
 
 local function createItemFrame(item_id, size, with_checkmark)
     if not item_id or item_id <= 0 then
@@ -43,7 +44,6 @@ local function createItemFrame(item_id, size, with_checkmark)
         end
     end
 
-    GameTooltip:SetHyperlink("item:" .. item_id .. ":0:0:0:0:0:0:0")
     local itemName, itemLink, _, _, _, _, _, _, _, itemIcon, _, itemType, _, bindType = GetItemInfo(item_id)
 
     if not itemName then
@@ -119,7 +119,7 @@ local function createSpellFrame(spell_id, size)
     -- Retrieve spell info directly using GetSpellInfo
     local name, rank, icon, castTime, minRange, maxRange = GetSpellInfo(spell_id)
     if not name or not icon then
-        spell_frame:SetImage("Interface\Icons\INV_Misc_QuestionMark")
+        spell_frame:SetImage("Interface\\Icons\\INV_Misc_QuestionMark")
         return spell_frame
     end
 
@@ -244,6 +244,9 @@ local function clearBoeMarks()
 end
 
 local function drawSpecData()
+    if not spec_frame then
+        return
+    end
     clearCheckMarks()
     clearBoeMarks()
     saveData()
@@ -353,57 +356,36 @@ local function drawDropdowns()
     specDropdown:SetDisabled(true)
 
     phaseDropDown:SetCallback("OnValueChanged", function(_, _, key)
+        if dropdownSyncInProgress then
+            return
+        end
         phase_index = key
         phase = Bistooltip_phases[key]
         drawSpecData()
-
-    local buttonContainer = AceGUI:Create("SimpleGroup")
-    buttonContainer:SetFullWidth(true)
-    buttonContainer:SetLayout("Flow")
-    buttonContainer:SetAutoAdjustHeight(false)
-    buttonContainer:SetHeight(32)
-    buttonContainer.content:SetPoint("CENTER")
-
-    local reloadButton = AceGUI:Create("Button")
-    reloadButton:SetText("Reload Data")
-    reloadButton:SetWidth(120)
-    reloadButton:SetHeight(24)
-    reloadButton:SetCallback("OnClick", function()
-        BistooltipAddon:reloadData()
-    end)
-
-    buttonContainer:AddChild(reloadButton)
-    main_frame:AddChild(buttonContainer)
-
-    local closeBtn
-    for _, child in ipairs({ main_frame.frame:GetChildren() }) do
-        if child:GetObjectType() == "Button" and child.GetText and child:GetText() == CLOSE then
-            closeBtn = child
-            break
-        end
-    end
-
-    if closeBtn then
-        closeBtn:SetParent(buttonContainer.frame)
-        closeBtn:ClearAllPoints()
-        closeBtn:SetPoint("LEFT", reloadButton.frame, "RIGHT", 20, 0)
-    end
     end)
 
     specDropdown:SetCallback("OnValueChanged", function(_, _, key)
+        if dropdownSyncInProgress then
+            return
+        end
         spec_index = key
         spec = spec_options_to_spec[spec_options[key]]
         drawSpecData()
     end)
 
     classDropdown:SetCallback("OnValueChanged", function(_, _, key)
+        if dropdownSyncInProgress then
+            return
+        end
         class_index = key
         class = class_options_to_class[class_options[key]].name
 
         specDropdown:SetDisabled(false)
         buildSpecsDict(key)
+        dropdownSyncInProgress = true
         specDropdown:SetList(spec_options)
         specDropdown:SetValue(1)
+        dropdownSyncInProgress = false
         spec_index = 1
         spec = spec_options_to_spec[spec_options[1]]
         drawSpecData()
@@ -495,18 +477,19 @@ function BistooltipAddon:createMainFrame()
 
     main_frame = AceGUI:Create("Frame")
     main_frame:SetWidth(450)
-    main_frame:SetHeight(500) -- Adjust the height here as needed
-    main_frame.frame:SetMinResize(450, 300)
-    main_frame.frame:SetMaxResize(800, 600)
+    main_frame:SetHeight(500)
+
+    -- Lock the window: hide the AceGUI sizer grips so users cannot
+    -- resize the frame. This avoids the layout glitches that
+    -- previously caused duplicate buttons. EnableResize is part of the
+    -- AceGUI Frame API and is reset by OnAcquire when the pooled
+    -- widget is reused, so this does not affect other addons.
+    if main_frame.EnableResize then
+        main_frame:EnableResize(false)
+    end
 
     main_frame:SetCallback("OnClose", function(widget)
-        clearCheckMarks()
-        clearBoeMarks()
-        spec_frame = nil
-        items = {}
-        spells = {}
-        AceGUI:Release(widget)
-        main_frame = nil
+        BistooltipAddon:closeMainFrame()
     end)
     main_frame:SetLayout("List")
     main_frame:SetTitle(BistooltipAddon.AddonNameAndVersion)
@@ -515,24 +498,29 @@ function BistooltipAddon:createMainFrame()
     drawDropdowns()
     createSpecFrame()
     drawSpecData()
-
-        end
+end
 
 function BistooltipAddon:closeMainFrame()
     if main_frame then
-        -- Release UI children to avoid leaks (AceGUI)
-        if main_frame.ReleaseChildren then
-            main_frame:ReleaseChildren()
-        end
-        if BistooltipAddon.ClearPendingItemFrames then
-            BistooltipAddon:ClearPendingItemFrames()
-        end
-        AceGUI:Release(main_frame)
+        local widget = main_frame
+        -- Null out module locals first so any callbacks fired during
+        -- release see a consistent state and bail out via guard checks.
         main_frame = nil
+        spec_frame = nil
         classDropdown = nil
         specDropdown = nil
         phaseDropDown = nil
-        return
+        items = {}
+        spells = {}
+        clearCheckMarks()
+        clearBoeMarks()
+        if BistooltipAddon.ClearPendingItemFrames then
+            BistooltipAddon:ClearPendingItemFrames()
+        end
+        if widget.ReleaseChildren then
+            widget:ReleaseChildren()
+        end
+        AceGUI:Release(widget)
     end
 end
 
