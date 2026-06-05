@@ -1,4 +1,3 @@
--- Auto-generated WotLK 3.3.5a raid loot source table
 lootTable = {
     ["Icecrown Citadel"] = {
         ["Council"] = {

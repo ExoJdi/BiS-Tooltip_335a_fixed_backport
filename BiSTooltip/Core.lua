@@ -28,7 +28,6 @@ local function _Bistooltip_ProcessPendingItemFrames()
         local itemName, itemLink, _, _, _, _, _, _, _, itemIcon = GetItemInfo(itemID)
         local hasLiveWidgets = false
 
-        -- Drop dead/released AceGUI widgets from the queue to avoid retaining them.
         for i = #widgets, 1, -1 do
             local w = widgets[i]
             if not w or not w.frame or not w.SetImage then
@@ -51,7 +50,6 @@ local function _Bistooltip_ProcessPendingItemFrames()
             _pendingPrimeRequested[itemID] = nil
             _pendingItemFrames[itemID] = nil
         else
-            -- Re-trigger query
             GetItemInfo(itemID)
             _Bistooltip_PrimeItemData(itemID)
         end
@@ -76,7 +74,6 @@ function BistooltipAddon:QueueItemFrameUpdate(itemID, aceIconWidget)
     end
     bucket[#bucket + 1] = aceIconWidget
 
-    -- Trigger query attempt
     GetItemInfo(itemID)
     _Bistooltip_PrimeItemData(itemID)
 
@@ -96,7 +93,6 @@ function BistooltipAddon:QueueItemFrameUpdate(itemID, aceIconWidget)
 end
 
 function BistooltipAddon:ClearPendingItemFrames()
-    -- Drop references to AceGUI Icon widgets so Lua GC can collect them
     for _, bucket in pairs(_pendingItemFrames) do
         for i = 1, #bucket do
             local w = bucket[i]
@@ -160,7 +156,7 @@ local function createEquipmentWatcher()
     local delay = 0.35
     local acc = 0
 
-    local bisItemIDs -- cached list of BiS itemIDs
+    local bisItemIDs
     local bisIndex = 1
     local bisChunk = 200
     local scanningBis = false
@@ -185,7 +181,6 @@ local function createEquipmentWatcher()
             end
         end
 
-        -- Bank bags (not main bank slots)
         for bankBag = NUM_BAG_SLOTS + 1, NUM_BAG_SLOTS + NUM_BANKBAGSLOTS do
             local numSlots = GetContainerNumSlots(bankBag)
             for slot = 1, numSlots do
@@ -212,7 +207,6 @@ local function createEquipmentWatcher()
         scanBagsAndEquipped(collection)
         Bistooltip_char_equipment = collection
 
-        -- Spread the expensive BiS-wide GetItemCount checks across frames
         ensureBisItemIDs()
         bisIndex = 1
         scanningBis = true

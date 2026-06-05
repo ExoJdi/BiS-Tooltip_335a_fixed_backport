@@ -7,14 +7,12 @@ local function specHighlighted(class_name, spec_name)
                BistooltipAddon.db.char.highlight_spec.class_name == class_name)
 end
 
--- Force refresh of visible item tooltips so option changes apply immediately.
 function BistooltipAddon:RefreshTooltips()
     local tooltips = { GameTooltip, ItemRefTooltip }
     for _, tt in ipairs(tooltips) do
         if tt and tt.IsShown and tt:IsShown() then
             local _, link = tt:GetItem()
             if link then
-                -- Re-setting the hyperlink forces Blizzard tooltip to rebuild.
                 tt:SetHyperlink("|cff9d9d9d|Hitem:3299::::::::20:257::::::|h[Fractured Canine]|h|r")
                 tt:SetHyperlink(link)
             end
@@ -31,7 +29,6 @@ local function specFiltered(class_name, spec_name)
     end
     local classFilter = BistooltipAddon.db.char.filter_specs and BistooltipAddon.db.char.filter_specs[class_name]
     if classFilter then
-        -- Default is "show" (true). If a spec has never been touched in UI yet, it may be nil here.
         if classFilter[spec_name] == nil then
             classFilter[spec_name] = true
         end
@@ -77,20 +74,17 @@ local function printClassName(tooltip, class_name)
     tooltip:AddLine(class_name, 1, 0.8, 0)
 end
 
--- Define your search function without debug prints
 function searchIDInBislistsClassSpec(structure, id, class, spec)
     local paths = {}
-    local seen = {} -- To track unique phase labels
+    local seen = {}
 
-    -- Sort phases according to Bistooltip_wowtbc_phases order
     local sortedPhases = {}
-    for _, phase in ipairs(Bistooltip_wowtbc_phases) do
+    for _, phase in ipairs(Bistooltip_wowsims_phases) do
         if structure[class] and structure[class][spec] and structure[class][spec][phase] then
             table.insert(sortedPhases, phase)
         end
     end
 
-    -- Iterate over sorted phases
     for _, phase in ipairs(sortedPhases) do
         local items = structure[class][spec][phase]
 
@@ -98,7 +92,6 @@ function searchIDInBislistsClassSpec(structure, id, class, spec)
             if type(itemData) == "table" and itemData[1] then
                 for i, itemId in ipairs(itemData) do
                     if i ~= "slot_name" and i ~= "enhs" and itemId == id then
-                        -- Determine the phase label based on the value of i
                         local phaseLabel
                         if i == 1 then
                             phaseLabel = phase .. " BIS"
@@ -106,7 +99,6 @@ function searchIDInBislistsClassSpec(structure, id, class, spec)
                             phaseLabel = phase .. " alt " .. i
                         end
 
-                        -- Add phase label to paths if not already seen
                         if not seen[phaseLabel] then
                             table.insert(paths, phaseLabel)
                             seen[phaseLabel] = true
@@ -142,7 +134,6 @@ local function caseInsensitivePairs(t)
     end
 end
 
--- Function to calculate the length of a string without color codes
 local function getStringLength(str)
     return string.len(string.gsub(str, "|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
 end
@@ -156,18 +147,13 @@ function table.contains(table, element)
     return false
 end
 
--- Initialize DataStore_Inventory as a local variable
 local DataStore_Inventory = _G.DataStore_Inventory
 
 local function GetItemSource(itemId)
     local source
 
-    -- Function to replace specific instance names
     local function formatInstanceName(instance)
-        -- Normalize instance name for comparison (if needed)
         local tmpInstance = string.lower(instance)
-
-        -- Replace "The Obsidian Sanctum(Heroic)" with "The Obsidian Sanctum(25)"
 
         if tmpInstance == "the obsidian sanctum (heroic)" then
             instance = "The Obsidian Sanctum(25)"
@@ -182,7 +168,6 @@ local function GetItemSource(itemId)
         return instance
     end
 
-    -- First, check the lootTable (assuming lootTable is defined somewhere)
     for zone, bosses in pairs(lootTable) do
         for boss, items in pairs(bosses) do
             if table.contains(items, itemId) then
@@ -196,9 +181,7 @@ local function GetItemSource(itemId)
         end
     end
 
-    -- If not found in lootTable, fallback to DataStore_Inventory (example usage)
     if not source then
-        -- Fallback to DataStore_Inventory if available
         if type(DataStore_Inventory) ~= "table" or type(DataStore_Inventory.GetSource) ~= "function" then
             return nil
         end
@@ -214,9 +197,7 @@ local function GetItemSource(itemId)
     return source
 end
 
--- Function to handle item tooltip
 local function OnGameTooltipSetItem(tooltip)
-    -- print("Debug: OnGameTooltipSetItem called")
     if BistooltipAddon.db.char.tooltip_with_ctrl and not IsControlKeyDown() then
         return
     end
@@ -233,21 +214,13 @@ local function OnGameTooltipSetItem(tooltip)
         return
     end
 
-    -- tooltip:AddDoubleLine("Spec Name", "Phase", 1, 1, 1, 1, 1, 1)
-
-    -- Iterate through each class and specialization
     for class, specs in caseInsensitivePairs(Bistooltip_spec_icons) do
         for spec, icon in pairs(specs) do
-            -- Skip the 'classIcon' entry
             if spec ~= "classIcon" then
-                -- Hide specs (unless ALT is held or it's the highlighted spec)
                 if specFiltered(class, spec) then
-                    -- filtered out
                 else
-                -- Search for the item ID in the current class and spec
                 local foundPhases = searchIDInBislistsClassSpec(Bistooltip_bislists, itemId, class, spec)
 
-                -- Only proceed if search function returns a non-nil value
                 if foundPhases then
                     local isHighlight = specHighlighted(class, spec)
                     local iconString = string.format("|T%s:18|t", icon)
@@ -270,22 +243,8 @@ local function OnGameTooltipSetItem(tooltip)
         end
     end
 
-    -- if Bistooltip_char_equipment and Bistooltip_char_equipment[itemId] ~= nil then
-    --     tooltip:AddLine(" ", 1, 1, 0)
-    --     if Bistooltip_char_equipment[itemId] == 2 then
-    --         tooltip:AddLine("You have this item equipped", 0.074, 0.964, 0.129)
-    --     else
-    --         tooltip:AddLine("You have this item in your inventory", 0.074, 0.964, 0.129)
-    --     end
-    -- end
-
-    -- tooltip:AddLine(" ", 1, 1, 0)
-    -- tooltip:AddLine("Hold ALT to disable spec filtering", 0.6, 0.6, 0.6)
-
-    -- Fetch item source information
     local itemSource = GetItemSource(itemId)
 
-    -- Add item source information to tooltip if available
     if itemSource then
         tooltip:AddLine(" ", 1, 1, 0)
         tooltip:AddLine(itemSource, 1, 1, 1)

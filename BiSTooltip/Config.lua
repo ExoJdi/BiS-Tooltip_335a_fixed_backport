@@ -5,15 +5,9 @@ local LDB = LibStub("LibDataBroker-1.1", true)
 local LDBIcon = LDB and LibStub("LibDBIcon-1.0", true)
 local icon_loaded = false
 local icon_name = "BisTooltipIcon"
--- local DataStore = LibStub("DataStore")
--- local DataStore_Inventory = LibStub("DataStore_Inventory")
-
-local sources = {
-    wowtbc = "wowtbc"
-}
 
 Bistooltip_source_to_url = {
-    ["wowtbc"] = "wowtbc.gg/wotlk"
+    ["WoWSims"] = "https://poli93.github.io/wotlk"
 }
 
 local db_defaults = {
@@ -23,7 +17,7 @@ local db_defaults = {
         phase_index = 1,
         filter_specs = {},
         highlight_spec = {},
-        data_source = nil,
+        data_source = "wowsims",
         minimap_icon = true,
         tooltip_with_ctrl = false
     }
@@ -105,7 +99,7 @@ local configTable = {
             order = 4,
             desc = "Removes unselected specs from item tooltips",
             type = "multiselect",
-            values = {}, -- Initialize as an empty table
+            values = {},
             set = function(info, key, val)
                 local ci, si = strsplit(":", key)
                 ci = tonumber(ci)
@@ -140,7 +134,7 @@ local configTable = {
             order = 5,
             desc = "Highlights selected spec in item tooltips",
             type = "multiselect",
-            values = {}, -- Initialize as an empty table
+            values = {},
             set = function(info, key, val)
                 if val then
                     local ci, si = strsplit(":", key)
@@ -231,9 +225,8 @@ local function migrateAddonDB()
         BistooltipAddon.db.char.phase_index = 1
     end
 
-    -- Set default data source to wowtbc if not already set
-    if BistooltipAddon.db.char.data_source == nil then
-        BistooltipAddon.db.char.data_source = "wowtbc"
+    if BistooltipAddon.db.char.data_source ~= "wowsims" then
+        BistooltipAddon.db.char.data_source = "wowsims"
     end
 
     if BistooltipAddon.db.char.version == 6.1 then
@@ -255,20 +248,178 @@ function BistooltipAddon:openConfigDialog()
     config_shown = not config_shown
 end
 
-local function enableSpec(spec_name)
-    if spec_name == sources.wowtbc then
-        Bistooltip_bislists = Bistooltip_wowtbc_bislists
-        Bistooltip_items = Bistooltip_wowtbc_items
-        Bistooltip_classes = Bistooltip_wowtbc_classes
-        Bistooltip_phases = Bistooltip_wowtbc_phases
-    else
-        -- Handle unexpected spec_name
-        return
+local function buildFallback()
+    if type(Bistooltip_wowsims_bislists) ~= "table" then
+        Bistooltip_wowsims_bislists = {}
+    end
+    return Bistooltip_wowsims_bislists
+end
+
+local function isRealId(id)
+    return id and id > 0
+end
+
+local function itemFaction(id)
+    if type(Bistooltip_item_faction) == "table" then
+        return Bistooltip_item_faction[id]
+    end
+    return nil
+end
+
+local function buildMirrorToMine(pf)
+    local m = {}
+    if type(Bistooltip_horde_to_ali) == "table" then
+        for a, b in pairs(Bistooltip_horde_to_ali) do
+            local fa = itemFaction(a)
+            local fb = itemFaction(b)
+            if fa == pf and fb and fb ~= pf then
+                m[b] = a
+            elseif fb == pf and fa and fa ~= pf then
+                m[a] = b
+            end
+        end
+    end
+    return m
+end
+
+local function resolveId(id, mirror, pf)
+    if mirror[id] then
+        id = mirror[id]
+    end
+    if not isRealId(id) then
+        return nil
+    end
+    local fr = itemFaction(id)
+    if fr and pf and fr ~= pf then
+        return nil
+    end
+    return id
+end
+
+local function groupWowsimsByName(wsSlots)
+    local g = {}
+    for _, s in ipairs(wsSlots) do
+        local n = s.slot_name
+        g[n] = g[n] or {}
+        g[n][#g[n] + 1] = s
+    end
+    return g
+end
+
+local function packSlot(slot_name, enhs, result)
+    local merged = { slot_name = slot_name, enhs = enhs }
+    for col = 1, 6 do
+        merged[col] = result[col] or -1
+    end
+    return merged
+end
+
+local function mergeSlot(oldSlot, wsList, mirror, pf)
+    local result = {}
+    local seen = {}
+    local function add(id)
+        id = resolveId(id, mirror, pf)
+        if id and not seen[id] and #result < 6 then
+            seen[id] = true
+            result[#result + 1] = id
+        end
+    end
+    if wsList then
+        for j = 1, #wsList do
+            add(wsList[j][1])
+        end
+    end
+    for col = 1, 6 do
+        add(oldSlot[col])
+    end
+    return packSlot(oldSlot.slot_name, oldSlot.enhs, result)
+end
+
+local function translateSlots(slots, mirror, pf)
+    if type(slots) ~= "table" then return slots end
+    local out = {}
+    for i, slot in ipairs(slots) do
+        local result = {}
+        local seen = {}
+        for col = 1, 6 do
+            local id = resolveId(slot[col], mirror, pf)
+            if id and not seen[id] then
+                seen[id] = true
+                result[#result + 1] = id
+            end
+        end
+        out[i] = packSlot(slot.slot_name, slot.enhs, result)
+    end
+    return out
+end
+
+local function mergeSpecPhase(wsSlots, oldSlots, mirror, pf)
+    if type(oldSlots) ~= "table" then
+        return translateSlots(wsSlots, mirror, pf)
+    end
+    local g = (type(wsSlots) == "table") and groupWowsimsByName(wsSlots) or nil
+    local out = {}
+    for i, oldSlot in ipairs(oldSlots) do
+        local wsList = nil
+        if g then
+            local name = oldSlot.slot_name
+            wsList = g[name]
+            if not wsList and (name == "Ranged" or name == "Relic") then
+                wsList = g["Relic"]
+            end
+        end
+        out[i] = mergeSlot(oldSlot, wsList, mirror, pf)
+    end
+    return out
+end
+
+local function assembleActiveBislists()
+    local isHorde = (UnitFactionGroup("player") == "Horde")
+    local pf = isHorde and 2 or 1
+    local primary = isHorde and Bistooltip_bislists_horde or Bistooltip_bislists_alliance
+    local fallback = buildFallback()
+    local mirror = buildMirrorToMine(pf)
+
+    local active = {}
+
+    if type(fallback) == "table" then
+        for className, specs in pairs(fallback) do
+            active[className] = active[className] or {}
+            local wsClass = primary and primary[className]
+            for specName, phases in pairs(specs) do
+                active[className][specName] = active[className][specName] or {}
+                local wsSpec = wsClass and wsClass[specName]
+                for phaseName, oldSlots in pairs(phases) do
+                    local wsSlots = wsSpec and wsSpec[phaseName]
+                    active[className][specName][phaseName] = mergeSpecPhase(wsSlots, oldSlots, mirror, pf)
+                end
+            end
+        end
     end
 
-    -- Check if Bistooltip_phases is nil or not a table
+    if type(primary) == "table" then
+        for className, specs in pairs(primary) do
+            active[className] = active[className] or {}
+            for specName, phases in pairs(specs) do
+                active[className][specName] = active[className][specName] or {}
+                for phaseName, wsSlots in pairs(phases) do
+                    if active[className][specName][phaseName] == nil then
+                        active[className][specName][phaseName] = translateSlots(wsSlots, mirror, pf)
+                    end
+                end
+            end
+        end
+    end
+
+    Bistooltip_bislists = active
+end
+
+local function enableSpec(spec_name)
+    Bistooltip_classes = Bistooltip_wowsims_classes
+    Bistooltip_phases = Bistooltip_wowsims_phases
+    assembleActiveBislists()
+
     if type(Bistooltip_phases) ~= "table" then
-        -- Handle the error or unexpected state
         return
     end
 
@@ -329,9 +480,9 @@ function BistooltipAddon:initConfig()
 
     migrateAddonDB()
 
-    enableSpec(BistooltipAddon.db.char.data_source)
+    enableSpec(BistooltipAddon.db.char.data_source or "wowsims")
 
-    buildFilterSpecOptions() -- Ensure this function is called to populate values
+    buildFilterSpecOptions()
 
     LibStub("AceConfig-3.0"):RegisterOptionsTable(BistooltipAddon.AceAddonName, configTable)
     AceConfigDialog:AddToBlizOptions(BistooltipAddon.AceAddonName, BistooltipAddon.AceAddonName)

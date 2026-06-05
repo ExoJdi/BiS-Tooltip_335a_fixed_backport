@@ -1,10 +1,13 @@
 ## Interface: 30300
-## Title: BiS-Tooltip-3.3.5a
-## Author: Hellixoid, Dweem, Silver (fixed by @Jdi)
-## Version: 1.2.2
-## Note: BiS-Tooltip - is an add-on providing in-game information about best in slot items. Backport to 3.3.5a.
+## Title: BiS-Tooltip
+## Author: JDI, Idan
+## Version: 2.0.0
+## Note: BiS-Tooltip - is an add-on providing in-game information about best in slot items. Backport to 3.3.5a
+## X-Website: https://poli93.github.io/wotlk/
+## OG-Repo: https://github.com/ExoJdi/BiS-Tooltip_335a_fixed_backport
 ## SavedVariables: BisTooltipDB
 ## OptionalDeps: Ace3, DataStore, DataStore_Inventory
+
 
 Libs\LibStub\LibStub.lua
 Libs\LibParse\LibParse.lua
@@ -21,16 +24,8 @@ Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 
 Loot_Sources.lua
 Bistooltip_classes.lua
-#Bistooltip_wowtbc_items.lua
-Bistooltip_wowtbc_bislists.lua
-Bistooltip_wowtbc_bislists_old.lua
-#Bistooltip_wowtbc_items_old.lua
-#Bistooltip_wowtbc_bislists_old.lua
-#Bistooltip_wh_items.lua
-#Bistooltip_wh_bislists.lua
-#Bistooltip_wh_items_old.lua
-#Bistooltip_wh_bislists_old.lua
-Bistooltip_horde_to_ali.lua
+Bistooltip_bislists.lua
+Bistooltip_faction.lua
 Core.lua
 Bislist.lua
 Config.lua
