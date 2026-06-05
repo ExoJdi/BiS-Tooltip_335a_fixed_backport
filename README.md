@@ -7,8 +7,10 @@ This update focuses on **full compatibility with WoW 3.3.5a**, stability, and pe
 ### Main window
 <table>
   <tr>
-    <td><img width="400" height="460" alt="image1" src="https://github.com/user-attachments/assets/b8b13f55-ea86-424c-97de-95cdc31857ef" /></td>
-    <td><img width="400" height="460" alt="image2" src="https://github.com/user-attachments/assets/560c6831-9cc8-4aa8-95d6-58e25f290e8b" /></td>
+    <td><img width="400" height="460" alt="image1" src="
+" /></td>
+    <td><img width="400" height="460" alt="image2" src="![Uploading image.png…]()
+" /></td>
   </tr>
 </table>
 
