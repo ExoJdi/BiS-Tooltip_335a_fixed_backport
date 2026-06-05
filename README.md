@@ -1,15 +1,27 @@
 ## 🛠️ BiSTooltip – Backport for WotLK 3.3.5a Fixes & Improvements
-https://www.curseforge.com/wow/addons/bis-tooltip
+
+Powered by [WoW Sims Backport)[https://poli93.github.io/wotlk)
 
 This update focuses on **full compatibility with WoW 3.3.5a**, stability, and performance.
 
-<img width="450" height="500" alt="image" src="https://github.com/user-attachments/assets/b8b13f55-ea86-424c-97de-95cdc31857ef" /><img width="450" height="500" alt="image" src="https://github.com/user-attachments/assets/560c6831-9cc8-4aa8-95d6-58e25f290e8b" />
-<img width="318" height="500" alt="image" src="https://github.com/user-attachments/assets/e6da7235-b148-45fc-a9c5-3f79759da682" />      <img width="318" height="500" alt="image" src="https://github.com/user-attachments/assets/ae6bec86-7b53-4094-9f1b-73622563060f" />
+### Main window
+<table>
+  <tr>
+    <td><img width="400" height="460" alt="image1" src="https://github.com/user-attachments/assets/b8b13f55-ea86-424c-97de-95cdc31857ef" /></td>
+    <td><img width="400" height="460" alt="image2" src="https://github.com/user-attachments/assets/560c6831-9cc8-4aa8-95d6-58e25f290e8b" /></td>
+  </tr>
+</table>
 
+### Tooltip
+<table>
+  <tr>
+    <td><img width="400" height="460" alt="image1" src="https://github.com/user-attachments/assets/e6da7235-b148-45fc-a9c5-3f79759da682" /></td>
+    <td><img width="400" height="460" alt="image2" src="https://github.com/user-attachments/assets/ae6bec86-7b53-4094-9f1b-73622563060f" /></td>
+  </tr>
+</table>
 
-
-
-
+### Settings
+<img width="600" height="580" alt="image" src="https://github.com/user-attachments/assets/71d424c9-8b86-4abc-aee3-fb57da294869" />
 
 ### Core & Initialization
 - Fixed broken addon initialization caused by missing global object (`BistooltipAddon`).
@@ -24,8 +36,8 @@ This update focuses on **full compatibility with WoW 3.3.5a**, stability, and pe
   - `attempt to call method 'createMainFrame' (a nil value)`
   - `ipairs(nil)` crashes when BIS data was missing for class/spec/phase
 - Added full nil-guards for optional dependencies (DataStore, external tooltip hooks).
-- 
-<img width="600" height="580" alt="image" src="https://github.com/user-attachments/assets/71d424c9-8b86-4abc-aee3-fb57da294869" />
+
+
 
 ### Item & Icon Loading (3.3.5a)
 - Reworked item loading logic to handle `GetItemInfo()` returning `nil` on WoW 3.3.5a.
