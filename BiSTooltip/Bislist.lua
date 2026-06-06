@@ -494,17 +494,20 @@ local function styleMainFrame()
     end
 
     if main_frame.titletext and main_frame.titlebg then
+        local titleParent = main_frame.titletext:GetParent() or f
         main_frame.titletext:ClearAllPoints()
-        main_frame.titletext:SetPoint("TOP", main_frame.titlebg, "TOP", 0, -19)
+        main_frame.titletext:SetPoint("TOP", main_frame.titlebg, "TOP", 10, -14)
         if not f._bistooltip_titleIcon then
-            local ic = f:CreateTexture(nil, "OVERLAY")
-            ic:SetDrawLayer("OVERLAY", 7)
-            ic:SetTexture("Interface\\Icons\\INV_Weapon_Glave_01")
-            ic:SetWidth(16)
-            ic:SetHeight(16)
-            ic:SetPoint("RIGHT", main_frame.titletext, "LEFT", -4, 0)
-            f._bistooltip_titleIcon = ic
+            f._bistooltip_titleIcon = titleParent:CreateTexture(nil, "OVERLAY")
+            f._bistooltip_titleIcon:SetTexture("Interface\\Icons\\INV_Weapon_Glave_01")
+            f._bistooltip_titleIcon:SetWidth(16)
+            f._bistooltip_titleIcon:SetHeight(16)
         end
+        f._bistooltip_titleIcon:SetParent(titleParent)
+        f._bistooltip_titleIcon:SetDrawLayer("OVERLAY", 7)
+        f._bistooltip_titleIcon:ClearAllPoints()
+        f._bistooltip_titleIcon:SetPoint("RIGHT", main_frame.titletext, "LEFT", -4, 0)
+        f._bistooltip_titleIcon:Show()
     end
 
     if not f._bistooltip_footerGap then
@@ -619,6 +622,18 @@ function BistooltipAddon:closeMainFrame()
         clearBoeMarks()
         if BistooltipAddon.ClearPendingItemFrames then
             BistooltipAddon:ClearPendingItemFrames()
+        end
+        local f = widget.frame
+        if f then
+            if f._bistooltip_titleIcon then
+                f._bistooltip_titleIcon:Hide()
+            end
+            if f._bistooltip_wowsimsBtn then
+                f._bistooltip_wowsimsBtn:Hide()
+            end
+            if f._bistooltip_closeBtn then
+                f._bistooltip_closeBtn:Hide()
+            end
         end
         if widget.ReleaseChildren then
             widget:ReleaseChildren()
