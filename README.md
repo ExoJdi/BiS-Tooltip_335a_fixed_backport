@@ -1,14 +1,14 @@
 ## 🛠️ BiSTooltip – Backport for WotLK 3.3.5a Fixes & Improvements
 
-Powered by [WoW Sims Backport](https://poli93.github.io/wotlk)
+**Powered by [WoW Sims Backport](https://poli93.github.io/wotlk)**
 
 This update focuses on **full compatibility with WoW 3.3.5a**, stability, and performance.
 
 ### Main window
 <table>
   <tr>
-    <td><img width="400" height="460" alt="image1" src="https://github.com/user-attachments/assets/b8b13f55-ea86-424c-97de-95cdc31857ef" /></td>
-    <td><img width="400" height="460" alt="image2" src="https://github.com/user-attachments/assets/560c6831-9cc8-4aa8-95d6-58e25f290e8b" /></td>
+    <td><img width="400" height="460" alt="image1" src="https://github.com/user-attachments/assets/07b767ca-baa1-4f6a-b26b-d70f610d5606" /></td>
+    <td><img width="400" height="460" alt="image2" src="https://github.com/user-attachments/assets/3279d746-ad6c-486f-bc70-2012f98e4c73" /></td>
   </tr>
 </table>
 
