@@ -21,6 +21,38 @@ local main_frame = nil
 local classDropdown = nil
 local specDropdown = nil
 local phaseDropDown = nil
+local sourceDropdown = nil
+local urlBox = nil
+local footerGroup = nil
+local closeButton = nil
+
+local function adjustListHeight()
+    if not (main_frame and spec_frame and footerGroup) then
+        return
+    end
+    local specTop = spec_frame.frame:GetTop()
+    local footTop = footerGroup.frame:GetTop()
+    if not (specTop and footTop) then
+        return
+    end
+    local gap = 14
+    local urlBottom = urlBox and urlBox.frame and urlBox.frame:GetBottom()
+    local closeTop = closeButton and closeButton.GetTop and closeButton:GetTop()
+    if urlBottom and closeTop then
+        local g = urlBottom - closeTop
+        if g and g > 2 then
+            gap = g
+        end
+    end
+    local h = specTop - footTop - gap
+    if h < 120 then
+        h = 120
+    end
+    spec_frame:SetHeight(h)
+    if main_frame.DoLayout then
+        main_frame:DoLayout()
+    end
+end
 
 local checkmarks = {}
 local boemarks = {}
@@ -29,29 +61,31 @@ local dropdownSyncInProgress = false
 
 local ESC_FRAME_NAME = "BisTooltipMainWindow"
 
-local WOWSIMS_URL = "https://poli93.github.io/wotlk/"
+local resizingMainFrame = false
 
-StaticPopupDialogs["BISTOOLTIP_WOWSIMS_LINK"] = {
-    text = "WoW Sims Backport - copy the link:",
-    button1 = CLOSE,
-    hasEditBox = true,
-    editBoxWidth = 250,
-    OnShow = function(self)
-        local eb = _G[self:GetName() .. "EditBox"]
-        if eb then
-            eb:SetText(WOWSIMS_URL)
-            eb:HighlightText()
-            eb:SetFocus()
+local function flattenDropdown(dd)
+    local f = dd and dd.dropdown
+    if not f then
+        return
+    end
+    local n = f.GetName and f:GetName()
+    if n then
+        for _, suf in ipairs({ "Left", "Middle", "Right" }) do
+            local tex = _G[n .. suf]
+            if tex and tex.Hide then
+                tex:Hide()
+            end
         end
-    end,
-    EditBoxOnEscapePressed = function(editBox)
-        editBox:GetParent():Hide()
-    end,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true,
-    preferredIndex = 3
-}
+    end
+    if f.GetNumRegions then
+        for i = 1, f:GetNumRegions() do
+            local r = select(i, f:GetRegions())
+            if r and r.GetObjectType and r:GetObjectType() == "Texture" then
+                r:Hide()
+            end
+        end
+    end
+end
 
 local function createItemFrame(item_id, size, with_checkmark)
     if not item_id or item_id <= 0 then
@@ -310,12 +344,23 @@ local function loadData()
     spec_index = BistooltipAddon.db.char.spec_index or 1
     phase_index = BistooltipAddon.db.char.phase_index or 1
 
+    if class_options and #class_options > 0 and class_index > #class_options then
+        class_index = 1
+    end
+    if Bistooltip_phases and phase_index > #Bistooltip_phases then
+        phase_index = 1
+    end
+
     if class_index and class_options and class_options[class_index] then
         local class_option = class_options[class_index]
         if class_options_to_class[class_option] then
             class = class_options_to_class[class_option].name
             buildSpecsDict(class_index)
         end
+    end
+
+    if spec_options and #spec_options > 0 and spec_index > #spec_options then
+        spec_index = 1
     end
 
     if spec_index and spec_options and spec_options[spec_index] then
@@ -330,14 +375,11 @@ end
 local function drawDropdowns()
     local dropDownGroup = AceGUI:Create("SimpleGroup")
 
+    dropDownGroup:SetFullWidth(true)
     dropDownGroup:SetLayout("Table")
     dropDownGroup:SetUserData("table", {
-        columns = {
-            { weight = 160, alignH = "LEFT" },
-            { weight = 160, alignH = "CENTER" },
-            { weight = 120, alignH = "RIGHT" }
-        },
-        space = 10,
+        columns = { { weight = 1 }, 120, 140, 70, { weight = 1 } },
+        space = 8,
         alignV = "middle"
     })
     main_frame:AddChild(dropDownGroup)
@@ -386,13 +428,24 @@ local function drawDropdowns()
     classDropdown:SetList(class_options)
     phaseDropDown:SetList(Bistooltip_phases)
 
+    local leftPad = AceGUI:Create("Label")
+    leftPad:SetText("")
+    dropDownGroup:AddChild(leftPad)
     dropDownGroup:AddChild(classDropdown)
     dropDownGroup:AddChild(specDropdown)
     dropDownGroup:AddChild(phaseDropDown)
+    local rightPad = AceGUI:Create("Label")
+    rightPad:SetText("")
+    dropDownGroup:AddChild(rightPad)
 
-    classDropdown:SetWidth(140)
+    classDropdown:SetWidth(120)
     specDropdown:SetWidth(140)
-    phaseDropDown:SetWidth(80)
+    phaseDropDown:SetWidth(70)
+
+    flattenDropdown(classDropdown)
+    flattenDropdown(specDropdown)
+    flattenDropdown(phaseDropDown)
+
     dropDownGroup:DoLayout()
 
     local fillerFrame = AceGUI:Create("Label")
@@ -434,7 +487,7 @@ local function createSpecFrame()
         align = "middle"
     })
     frame:SetFullWidth(true)
-    frame:SetHeight(380)
+    frame:SetHeight(360)
     frame:SetAutoAdjustHeight(false)
     main_frame:AddChild(frame)
     spec_frame = frame
@@ -446,9 +499,20 @@ function BistooltipAddon:reloadData()
     spec_index = BistooltipAddon.db.char.spec_index or 1
     phase_index = BistooltipAddon.db.char.phase_index or 1
 
+    if class_options and #class_options > 0 and class_index > #class_options then
+        class_index = 1
+    end
+    if Bistooltip_phases and phase_index > #Bistooltip_phases then
+        phase_index = 1
+    end
+
     if class_options and class_options[class_index] and class_options_to_class[class_options[class_index]] then
         class = class_options_to_class[class_options[class_index]].name
         buildSpecsDict(class_index)
+    end
+
+    if spec_options and #spec_options > 0 and spec_index > #spec_options then
+        spec_index = 1
     end
 
     if spec_options and spec_options[spec_index] and spec_options_to_spec[spec_options[spec_index]] then
@@ -474,84 +538,67 @@ function BistooltipAddon:reloadData()
         specDropdown:SetValue(spec_index)
         phaseDropDown:SetValue(phase_index)
 
+        if sourceDropdown then
+            sourceDropdown:SetValue(BistooltipAddon.db.char.data_source)
+        end
+        if urlBox then
+            urlBox:SetText(Bistooltip_source_to_url[BistooltipAddon.db.char.data_source])
+        end
+
         drawSpecData()
         main_frame:SetStatusText("")
     end
 end
 
 
-local function styleMainFrame()
-    if not main_frame or not main_frame.frame then
-        return
-    end
-    local f = main_frame.frame
+local function drawFooter()
+    local anchor = main_frame.content or main_frame.frame
 
-    for _, child in ipairs({ f:GetChildren() }) do
-        if child ~= main_frame.content and child.obj == main_frame
-            and child.GetObjectType and child:GetObjectType() == "Button" then
-            child:Hide()
-        end
-    end
+    footerGroup = AceGUI:Create("SimpleGroup")
+    footerGroup:SetLayout("Table")
+    footerGroup:SetUserData("table", {
+        columns = { 150, 90 },
+        space = 8,
+        alignV = "middle"
+    })
+    footerGroup:SetWidth(248)
+    footerGroup:SetHeight(28)
 
-    if main_frame.titletext and main_frame.titlebg then
-        local titleParent = main_frame.titletext:GetParent() or f
-        main_frame.titletext:ClearAllPoints()
-        main_frame.titletext:SetPoint("TOP", main_frame.titlebg, "TOP", 10, -14)
-        if not f._bistooltip_titleIcon then
-            f._bistooltip_titleIcon = titleParent:CreateTexture(nil, "OVERLAY")
-            f._bistooltip_titleIcon:SetTexture("Interface\\Icons\\INV_Weapon_Glave_01")
-            f._bistooltip_titleIcon:SetWidth(16)
-            f._bistooltip_titleIcon:SetHeight(16)
-        end
-        f._bistooltip_titleIcon:SetParent(titleParent)
-        f._bistooltip_titleIcon:SetDrawLayer("OVERLAY", 7)
-        f._bistooltip_titleIcon:ClearAllPoints()
-        f._bistooltip_titleIcon:SetPoint("RIGHT", main_frame.titletext, "LEFT", -4, 0)
-        f._bistooltip_titleIcon:Show()
-    end
+    sourceDropdown = AceGUI:Create("Dropdown")
+    sourceDropdown:SetList(Bistooltip_source_to_name, Bistooltip_source_order)
+    sourceDropdown:SetValue(BistooltipAddon.db.char.data_source)
+    sourceDropdown:SetCallback("OnValueChanged", function(_, _, key)
+        BistooltipAddon.db.char.data_source = key
+    end)
+    footerGroup:AddChild(sourceDropdown)
+    flattenDropdown(sourceDropdown)
 
-    if not f._bistooltip_footerGap then
-        f._bistooltip_footerGap = CreateFrame("Frame", nil, f)
-    end
-    if not f._bistooltip_wowsimsBtn then
-        local wowsims = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-        wowsims:SetText("WoW Sims Backport")
-        wowsims:SetHeight(22)
-        wowsims:SetWidth(150)
-        wowsims:SetScript("OnClick", function()
-            StaticPopup_Show("BISTOOLTIP_WOWSIMS_LINK")
-        end)
-        f._bistooltip_wowsimsBtn = wowsims
+    local reloadBtn = AceGUI:Create("Button")
+    reloadBtn:SetText("Reload")
+    reloadBtn:SetCallback("OnClick", function()
+        BistooltipAddon:changeSpec(BistooltipAddon.db.char.data_source)
+    end)
+    footerGroup:AddChild(reloadBtn)
 
-        local closeBtn = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-        closeBtn:SetText(CLOSE)
-        closeBtn:SetHeight(22)
-        closeBtn:SetWidth(90)
-        closeBtn:SetScript("OnClick", function()
-            BistooltipAddon:closeMainFrame()
-        end)
-        f._bistooltip_closeBtn = closeBtn
-    end
+    urlBox = AceGUI:Create("EditBox")
+    urlBox:SetWidth(330)
+    urlBox:DisableButton(true)
+    urlBox:SetText(Bistooltip_source_to_url[BistooltipAddon.db.char.data_source])
+    urlBox:SetCallback("OnEnterPressed", function(self)
+        self:SetText(Bistooltip_source_to_url[BistooltipAddon.db.char.data_source])
+        self:ClearFocus()
+    end)
 
-    local footerGap = f._bistooltip_footerGap
-    footerGap:ClearAllPoints()
-    if spec_frame and spec_frame.frame then
-        footerGap:SetPoint("TOPLEFT", spec_frame.frame, "BOTTOMLEFT", 0, 0)
-        footerGap:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
-    else
-        footerGap:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 14)
-        footerGap:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 44)
-    end
+    footerGroup.frame:SetParent(anchor)
+    footerGroup.frame:ClearAllPoints()
+    footerGroup.frame:SetPoint("BOTTOM", anchor, "BOTTOM", 0, 34)
+    footerGroup.frame:Show()
+    footerGroup:DoLayout()
 
-    local wsBtn = f._bistooltip_wowsimsBtn
-    local clBtn = f._bistooltip_closeBtn
-    local half = (wsBtn:GetWidth() + 20 + clBtn:GetWidth()) / 2
-    wsBtn:ClearAllPoints()
-    wsBtn:SetPoint("LEFT", footerGap, "CENTER", -half, 0)
-    wsBtn:Show()
-    clBtn:ClearAllPoints()
-    clBtn:SetPoint("RIGHT", footerGap, "CENTER", half, 0)
-    clBtn:Show()
+    urlBox.frame:SetParent(anchor)
+    urlBox.frame:ClearAllPoints()
+    urlBox.frame:SetPoint("BOTTOM", anchor, "BOTTOM", 0, 4)
+    urlBox.frame:Show()
 end
 
 function BistooltipAddon:createMainFrame()
@@ -562,11 +609,24 @@ function BistooltipAddon:createMainFrame()
 
     main_frame = AceGUI:Create("Frame")
     main_frame:SetWidth(450)
-    main_frame:SetHeight(530)
+    main_frame:SetHeight(590)
 
     if main_frame.EnableResize then
-        main_frame:EnableResize(false)
+        main_frame:EnableResize(true)
     end
+    if main_frame.sizer_se then main_frame.sizer_se:Hide() end
+    if main_frame.sizer_e then main_frame.sizer_e:Hide() end
+    if main_frame.frame.SetMinResize then
+        main_frame.frame:SetMinResize(450, 400)
+    end
+    main_frame.frame:SetScript("OnSizeChanged", function(self)
+        if resizingMainFrame or not spec_frame then
+            return
+        end
+        resizingMainFrame = true
+        adjustListHeight()
+        resizingMainFrame = false
+    end)
 
     main_frame:SetCallback("OnClose", function(widget)
         BistooltipAddon:closeMainFrame()
@@ -601,11 +661,47 @@ function BistooltipAddon:createMainFrame()
     main_frame:SetTitle(BistooltipAddon.AddonNameAndVersion)
     main_frame:SetStatusText("")
 
+    if main_frame.statustext and main_frame.statustext.GetParent then
+        local statusbg = main_frame.statustext:GetParent()
+        if statusbg and statusbg.Hide then
+            statusbg:Hide()
+        end
+    end
+
+    if main_frame.titletext then
+        local titleParent = main_frame.titletext:GetParent()
+        local icon = main_frame.frame._bistooltip_titleIcon
+        if not icon then
+            icon = titleParent:CreateTexture(nil, "OVERLAY")
+            icon:SetDrawLayer("OVERLAY", 7)
+            icon:SetTexture("Interface\\Icons\\inv_weapon_glave_01")
+            icon:SetWidth(16)
+            icon:SetHeight(16)
+            main_frame.frame._bistooltip_titleIcon = icon
+        end
+        icon:ClearAllPoints()
+        icon:SetPoint("RIGHT", main_frame.titletext, "LEFT", 0, 0)
+        icon:Show()
+    end
+
     drawDropdowns()
     createSpecFrame()
     drawSpecData()
 
-    styleMainFrame()
+    drawFooter()
+
+    closeButton = nil
+    if main_frame.frame.GetChildren then
+        for _, child in ipairs({ main_frame.frame:GetChildren() }) do
+            if child.GetObjectType and child:GetObjectType() == "Button"
+                and child.GetText and child:GetText() == CLOSE then
+                closeButton = child
+                break
+            end
+        end
+    end
+
+    adjustListHeight()
 end
 
 function BistooltipAddon:closeMainFrame()
@@ -616,24 +712,25 @@ function BistooltipAddon:closeMainFrame()
         classDropdown = nil
         specDropdown = nil
         phaseDropDown = nil
+        sourceDropdown = nil
+        closeButton = nil
         items = {}
         spells = {}
         clearCheckMarks()
         clearBoeMarks()
+        if footerGroup then
+            AceGUI:Release(footerGroup)
+            footerGroup = nil
+        end
+        if urlBox then
+            AceGUI:Release(urlBox)
+            urlBox = nil
+        end
         if BistooltipAddon.ClearPendingItemFrames then
             BistooltipAddon:ClearPendingItemFrames()
         end
-        local f = widget.frame
-        if f then
-            if f._bistooltip_titleIcon then
-                f._bistooltip_titleIcon:Hide()
-            end
-            if f._bistooltip_wowsimsBtn then
-                f._bistooltip_wowsimsBtn:Hide()
-            end
-            if f._bistooltip_closeBtn then
-                f._bistooltip_closeBtn:Hide()
-            end
+        if widget.frame then
+            widget.frame:SetScript("OnSizeChanged", nil)
         end
         if widget.ReleaseChildren then
             widget:ReleaseChildren()

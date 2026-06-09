@@ -6,8 +6,18 @@ local LDBIcon = LDB and LibStub("LibDBIcon-1.0", true)
 local icon_loaded = false
 local icon_name = "BisTooltipIcon"
 
+Bistooltip_source_to_name = {
+    ["wowsims"] = "WoWSims Backport",
+    ["wh"] = "Wowhead",
+    ["wowtbc"] = "WoWTBC"
+}
+
+Bistooltip_source_order = { "wowsims", "wowtbc", "wh" }
+
 Bistooltip_source_to_url = {
-    ["WoWSims"] = "https://poli93.github.io/wotlk"
+    ["wowsims"] = "https://poli93.github.io/wotlk/",
+    ["wh"] = "https://www.wowhead.com/wotlk",
+    ["wowtbc"] = "https://wowtbc.gg/wotlk"
 }
 
 local db_defaults = {
@@ -85,7 +95,8 @@ local configTable = {
             type = "select",
             style = "dropdown",
             width = "double",
-            values = Bistooltip_source_to_url,
+            values = Bistooltip_source_to_name,
+            sorting = Bistooltip_source_order,
             set = function(info, key, val)
                 BistooltipAddon.db.char.data_source = key
                 BistooltipAddon:changeSpec(key)
@@ -164,6 +175,9 @@ local configTable = {
 }
 
 local function buildFilterSpecOptions()
+    if type(Bistooltip_classes) ~= "table" then
+        return
+    end
     local filter_specs_options = {}
     for ci, class in ipairs(Bistooltip_classes) do
         for si, spec in ipairs(class.specs) do
@@ -225,7 +239,7 @@ local function migrateAddonDB()
         BistooltipAddon.db.char.phase_index = 1
     end
 
-    if BistooltipAddon.db.char.data_source ~= "wowsims" then
+    if BistooltipAddon.db.char.data_source == nil then
         BistooltipAddon.db.char.data_source = "wowsims"
     end
 
@@ -415,9 +429,19 @@ local function assembleActiveBislists()
 end
 
 local function enableSpec(spec_name)
-    Bistooltip_classes = Bistooltip_wowsims_classes
-    Bistooltip_phases = Bistooltip_wowsims_phases
-    assembleActiveBislists()
+    if spec_name == "wh" then
+        Bistooltip_classes = Bistooltip_wh_classes
+        Bistooltip_phases = Bistooltip_wh_phases
+        Bistooltip_bislists = Bistooltip_wh_bislists
+    elseif spec_name == "wowtbc" then
+        Bistooltip_classes = Bistooltip_wowtbc_classes
+        Bistooltip_phases = Bistooltip_wowtbc_phases
+        Bistooltip_bislists = Bistooltip_wowtbc_bislists
+    else
+        Bistooltip_classes = Bistooltip_wowsims_classes
+        Bistooltip_phases = Bistooltip_wowsims_phases
+        assembleActiveBislists()
+    end
 
     if type(Bistooltip_phases) ~= "table" then
         return
@@ -466,11 +490,8 @@ function BistooltipAddon:addMapIcon()
 end
 
 function BistooltipAddon:changeSpec(spec_name)
-    BistooltipAddon.db.char.class_index = 1
-    BistooltipAddon.db.char.spec_index = 1
-    BistooltipAddon.db.char.phase_index = 1
+    BistooltipAddon.db.char.data_source = spec_name
     enableSpec(spec_name)
-
     BistooltipAddon:initBislists()
     BistooltipAddon:reloadData()
 end

@@ -79,7 +79,7 @@ function searchIDInBislistsClassSpec(structure, id, class, spec)
     local seen = {}
 
     local sortedPhases = {}
-    for _, phase in ipairs(Bistooltip_wowsims_phases) do
+    for _, phase in ipairs(Bistooltip_phases) do
         if structure[class] and structure[class][spec] and structure[class][spec][phase] then
             table.insert(sortedPhases, phase)
         end

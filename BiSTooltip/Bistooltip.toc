@@ -1,7 +1,7 @@
 ## Interface: 30300
 ## Title: BiS-Tooltip
 ## Author: JDI, Idan
-## Version: 2.0.0
+## Version: 2.0.2
 ## Note: BiS-Tooltip - is an add-on providing in-game information about best in slot items. Backport to 3.3.5a
 ## X-Website: https://poli93.github.io/wotlk/
 ## OG-Repo: https://github.com/ExoJdi/BiS-Tooltip_335a_fixed_backport
@@ -24,8 +24,10 @@ Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 
 Loot_Sources.lua
 Bistooltip_classes.lua
-Bistooltip_bislists.lua
 Bistooltip_faction.lua
+Bistooltip_WoWSimsBP_bislists.lua
+Bistooltip_wh_bislists.lua
+Bistooltip_wowtbc_bislists.lua
 Core.lua
 Bislist.lua
 Config.lua
